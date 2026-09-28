@@ -1,0 +1,33 @@
+name: Validate templates
+
+on:
+  pull_request:
+    paths:
+      - "templates/**"
+      - ".github/workflows/validate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "templates/**"
+      - ".github/workflows/validate.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Validate every template
+        run: |
+          shopt -s nullglob
+          files=(templates/*.yaml templates/*.yml)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "no templates/*.yaml files found"
+            exit 1
+          fi
+          prefixed=()
+          for f in "${files[@]}"; do
+            prefixed+=("/w/$f")
+          done
+          docker run --rm -v "$PWD:/w:ro" ghcr.io/robingasi/nebula:latest \
+            template validate "${prefixed[@]}"

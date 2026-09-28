@@ -1,0 +1,69 @@
+schemaVersion: 1
+name: Paperless-ngx
+description: Self-hosted document management with OCR, full-text search and automatic tagging for your scanned paperwork.
+category: storage
+tags: [documents, ocr]
+links:
+  website: https://docs.paperless-ngx.com
+  docs: https://docs.paperless-ngx.com
+  source: https://github.com/paperless-ngx/paperless-ngx
+readme: |
+  ## First login
+
+  1. Open the hostname you set below once the deployment is healthy.
+  2. Sign in with username `admin` and the generated password below (view it in this service's variables), then change it under the user menu.
+  3. Drop a PDF, image or scan into the "consume" folder shown on the Documents page, or upload one directly, to see it OCR'd and tagged automatically.
+inputs:
+  - key: HOSTNAME
+    label: Hostname
+    description: Where Paperless-ngx is served, for example docs.example.com. Leave empty to add a domain later.
+  - key: EXPOSURE
+    label: Exposure
+    description: Public serves the hostname on the internet; tailnet serves it only inside your Tailscale network.
+    default: public
+    options: [public, tailnet]
+services:
+  - name: paperless
+    image: docker.io/paperlessngx/paperless-ngx:3.2.1
+    processes:
+      - name: web
+        kind: http
+        port: 8000
+        # Its own docs document a "rootless" mode: set a numeric user
+        # directly (not USERMAP_UID/GID, which is the alternate,
+        # root-started mode) and it starts cleanly non-root.
+        runAsUser: 1000
+        memory: {request: 512Mi, limit: 1536Mi}
+        cpu: {request: 250m, limit: 1500m}
+        volumes:
+          - name: data
+            mountPath: /usr/src/paperless/data
+            size: 2Gi
+          - name: media
+            mountPath: /usr/src/paperless/media
+            size: 10Gi
+          - name: export
+            mountPath: /usr/src/paperless/export
+            size: 1Gi
+          - name: consume
+            mountPath: /usr/src/paperless/consume
+            size: 1Gi
+        domain:
+          hostname: ${{ inputs.HOSTNAME }}
+          exposure: ${{ inputs.EXPOSURE }}
+    variables:
+      PAPERLESS_REDIS: ${{ cache.REDIS_URL }}
+      PAPERLESS_DBENGINE: postgresql
+      PAPERLESS_DBHOST: ${{ host(db) }}
+      PAPERLESS_DBPORT: "5432"
+      PAPERLESS_DBNAME: app
+      PAPERLESS_DBUSER: postgres
+      PAPERLESS_DBPASS: ${{ db.POSTGRES_PASSWORD }}
+      PAPERLESS_SECRET_KEY: ${{ secret(64) }}
+      PAPERLESS_URL: https://${{ inputs.HOSTNAME }}
+      PAPERLESS_ADMIN_USER: admin
+      PAPERLESS_ADMIN_PASSWORD: ${{ secret(20) }}
+  - name: db
+    database: {engine: postgres}
+  - name: cache
+    database: {engine: valkey}

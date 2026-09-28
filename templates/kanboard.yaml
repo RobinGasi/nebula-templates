@@ -1,0 +1,55 @@
+schemaVersion: 1
+name: Kanboard
+description: Self-hosted, minimalist kanban project management with unlimited boards, projects and users.
+category: productivity
+tags: [kanban, project-management]
+links:
+  website: https://kanboard.org
+  docs: https://docs.kanboard.org/v1/admin/docker/
+  source: https://github.com/kanboard/kanboard
+readme: |
+  ## First login
+
+  1. Open the hostname you set below once the deployment is healthy.
+  2. Sign in with the default account `admin` / `admin`, then change the password immediately under your profile.
+  3. Create a project and start dragging cards between columns.
+inputs:
+  - key: HOSTNAME
+    label: Hostname
+    description: Where Kanboard is served, for example tasks.example.com. Leave empty to add a domain later.
+  - key: EXPOSURE
+    label: Exposure
+    description: Public serves the hostname on the internet; tailnet serves it only inside your Tailscale network.
+    default: public
+    options: [public, tailnet]
+services:
+  - name: kanboard
+    image: docker.io/kanboard/kanboard:v1.2.54
+    processes:
+      - name: web
+        kind: http
+        port: 80
+        # nginx, php-fpm and cron run under one supervisor that needs
+        # root to start and bind port 80; the maintainers have said
+        # making this non-root by default would be a breaking change
+        # (kanboard/kanboard#5738).
+        runAsUser: 0
+        memory: {request: 128Mi, limit: 512Mi}
+        cpu: {request: 50m, limit: 500m}
+        startupPath: /healthcheck.php
+        readinessPath: /healthcheck.php
+        livenessPath: /healthcheck.php
+        volumes:
+          - name: data
+            mountPath: /var/www/app/data
+            size: 2Gi
+          - name: plugins
+            mountPath: /var/www/app/plugins
+            size: 500Mi
+        domain:
+          hostname: ${{ inputs.HOSTNAME }}
+          exposure: ${{ inputs.EXPOSURE }}
+    variables:
+      DATABASE_URL: ${{ db.DATABASE_URL }}
+  - name: db
+    database: {engine: postgres}

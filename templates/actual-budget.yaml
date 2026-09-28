@@ -1,0 +1,49 @@
+schemaVersion: 1
+name: Actual Budget
+description: A local-first, privacy-focused personal budgeting app with envelope budgeting and multi-device sync.
+category: productivity
+tags: [budgeting, finance]
+links:
+  website: https://actualbudget.org
+  docs: https://actualbudget.org/docs/
+  source: https://github.com/actualbudget/actual
+readme: |
+  ## First login
+
+  1. Open the hostname you set below once the deployment is healthy.
+  2. Actual Budget ships no default account: choose "Start Fresh" to create a new budget file, or "Import My Budget" to bring one from another host.
+  3. Set a server passphrase from the setup screen — it encrypts your data end to end and is never sent to or stored by this server in the clear.
+
+  There is no separate database; everything lives in the mounted volume.
+inputs:
+  - key: HOSTNAME
+    label: Hostname
+    description: Where Actual Budget is served, for example budget.example.com. Leave empty to add a domain later.
+  - key: EXPOSURE
+    label: Exposure
+    description: Public serves the hostname on the internet; tailnet serves it only inside your Tailscale network.
+    default: public
+    options: [public, tailnet]
+services:
+  - name: actual
+    image: docker.io/actualbudget/actual-server:26.9.0
+    processes:
+      - name: web
+        kind: http
+        port: 5006
+        # The image's own Dockerfile creates user "actual" (uid/gid 1001)
+        # and chowns /data to it at build time, so this UID can be used
+        # directly without any startup privilege drop.
+        runAsUser: 1001
+        memory: {request: 128Mi, limit: 512Mi}
+        cpu: {request: 50m, limit: 500m}
+        startupPath: /health
+        readinessPath: /health
+        livenessPath: /health
+        volumes:
+          - name: data
+            mountPath: /data
+            size: 2Gi
+        domain:
+          hostname: ${{ inputs.HOSTNAME }}
+          exposure: ${{ inputs.EXPOSURE }}

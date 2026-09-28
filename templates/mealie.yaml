@@ -1,0 +1,56 @@
+schemaVersion: 1
+name: Mealie
+description: Self-hosted recipe manager and meal planner with a recipe scraper, shopping lists and a cookbook UI.
+category: productivity
+tags: [recipes, meal-planning]
+links:
+  website: https://mealie.io
+  docs: https://docs.mealie.io
+  source: https://github.com/mealie-recipes/mealie
+readme: |
+  ## First login
+
+  1. Open the hostname you set below once the deployment is healthy.
+  2. Register the first account — it becomes an admin of the default "Home" household.
+  3. Add a recipe by pasting a URL under Recipes → Create Recipe → Import from URL, or bulk-import via Settings → Backups.
+inputs:
+  - key: HOSTNAME
+    label: Hostname
+    description: Where Mealie is served, for example recipes.example.com. Leave empty to add a domain later.
+  - key: EXPOSURE
+    label: Exposure
+    description: Public serves the hostname on the internet; tailnet serves it only inside your Tailscale network.
+    default: public
+    options: [public, tailnet]
+services:
+  - name: mealie
+    image: ghcr.io/mealie-recipes/mealie:v3.28.0
+    processes:
+      - name: web
+        kind: http
+        port: 9000
+        # entry.sh chowns /app/data as root, then re-execs itself as
+        # PUID:PGID (default 911) via gosu — it cannot start non-root.
+        runAsUser: 0
+        memory: {request: 256Mi, limit: 768Mi}
+        cpu: {request: 100m, limit: 1000m}
+        startupPath: /api/app/about
+        readinessPath: /api/app/about
+        livenessPath: /api/app/about
+        volumes:
+          - name: data
+            mountPath: /app/data
+            size: 2Gi
+        domain:
+          hostname: ${{ inputs.HOSTNAME }}
+          exposure: ${{ inputs.EXPOSURE }}
+    variables:
+      DB_ENGINE: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${{ db.POSTGRES_PASSWORD }}
+      POSTGRES_SERVER: ${{ host(db) }}
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: app
+      BASE_URL: https://${{ inputs.HOSTNAME }}/
+  - name: db
+    database: {engine: postgres}
