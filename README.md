@@ -21,8 +21,8 @@ https://<your-control-plane>/<org>/templates?install=<raw-or-blob-url>
 `<raw-or-blob-url>` is this template's URL in this repository — either form works:
 
 ```
-https://github.com/RobinGasi/nebula-templates/blob/main/templates/mealie.yaml
-https://raw.githubusercontent.com/RobinGasi/nebula-templates/main/templates/mealie.yaml
+https://github.com/nebulactrl/nebula-templates/blob/main/templates/mealie.yaml
+https://raw.githubusercontent.com/nebulactrl/nebula-templates/main/templates/mealie.yaml
 ```
 
 Opening that link takes you straight to the install dialog, pre-filled and previewed — nothing is saved to your organization until you click Install.

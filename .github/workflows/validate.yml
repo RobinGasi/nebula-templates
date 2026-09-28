@@ -29,5 +29,5 @@ jobs:
           for f in "${files[@]}"; do
             prefixed+=("/w/$f")
           done
-          docker run --rm -v "$PWD:/w:ro" ghcr.io/robingasi/nebula:latest \
+          docker run --rm -v "$PWD:/w:ro" ghcr.io/nebulactrl/nebula:latest \
             template validate "${prefixed[@]}"

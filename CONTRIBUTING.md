@@ -23,7 +23,7 @@ For everything else about the file format itself — every field, the `${{ ... }
 Before opening a pull request, run the same check CI runs, over your new file:
 
 ```sh
-docker run --rm -v "$PWD:/w:ro" ghcr.io/robingasi/nebula:latest template validate /w/templates/<slug>.yaml
+docker run --rm -v "$PWD:/w:ro" ghcr.io/nebulactrl/nebula:latest template validate /w/templates/<slug>.yaml
 ```
 
 It prints `<file>: ok (<name>, <n> services)` for a valid file, or every problem it found — one per line, each with the field path and, where it can, the line number — and exits non-zero if anything needs fixing. This is exactly what `.github/workflows/validate.yml` runs over every file in `templates/` on every pull request and every push to `main`.
